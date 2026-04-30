@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostic Énergie & Performance — Versalia</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: transparent; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+  .vp-wrap { background: #ffffff; border-radius: 16px; border: 1px solid #e5e5e0; max-width: 560px; width: 100%; padding: 2rem 1.75rem 2.5rem; }
+  .vp-header { text-align: center; margin-bottom: 2rem; }
+  .vp-logo { font-size: 10px; font-weight: 600; letter-spacing: 0.15em; color: #999; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .vp-title { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 0.4rem; }
+  .vp-sub { font-size: 14px; color: #666; }
+  .progress-bar { height: 3px; background: #eee; border-radius: 4px; margin-bottom: 1.75rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: #1D9E75; border-radius: 4px; transition: width 0.4s ease; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .q-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; margin-bottom: 0.4rem; }
+  .q-text { font-size: 17px; font-weight: 600; color: #111; margin-bottom: 1.25rem; line-height: 1.4; }
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .opt { background: #fff; border: 1.5px solid #e0e0da; border-radius: 10px; padding: 0.8rem 1rem; font-size: 14px; color: #333; cursor: pointer; text-align: left; width: 100%; transition: border-color 0.15s, background 0.15s; font-family: inherit; }
+  .opt:hover { border-color: #1D9E75; background: #f0faf6; }
+  .btn-next { width: 100%; padding: 0.8rem; background: #1D9E75; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; opacity: 0.35; pointer-events: none; transition: opacity 0.2s, background 0.2s; font-family: inherit; }
+  .btn-next.ready { opacity: 1; pointer-events: auto; }
+  .btn-next.ready:hover { background: #0F6E56; }
+  .loading-block { text-align: center; padding: 2.5rem 0; display: none; }
+  .loading-block.active { display: block; }
+  .loading-text { font-size: 14px; color: #888; margin-top: 1rem; }
+  .loading-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #1D9E75; margin: 0 4px; animation: pulse 1.2s infinite; }
+  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+  .result { display: none; }
+  .result.active { display: block; }
+  .scores-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+  .score-block { background: #f5f5f2; border-radius: 12px; padding: 1.25rem; text-align: center; }
+  .score-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #999; margin-bottom: 0.4rem; }
+  .score-val { font-size: 38px; font-weight: 700; color: #111; }
+  .score-unit { font-size: 12px; color: #888; margin-top: 0.2rem; }
+  .gauge-wrap { margin-bottom: 1rem; }
+  .gauge-label { font-size: 13px; color: #555; margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .gauge-label span:last-child { font-weight: 600; color: #111; }
+  .gauge-track { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 4px; width: 0%; transition: width 1s ease; }
+  .divider { height: 1px; background: #eee; margin: 1.5rem 0; }
+  .conseils-title { font-size: 15px; font-weight: 600; color: #111; margin-bottom: 0.75rem; }
+
+  .conseil {
+    border: 1px solid #e8e8e4;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 10px;
+    transition: filter 0.6s ease;
+  }
+  .conseil.blurred { filter: blur(5px); user-select: none; pointer-events: none; }
+  .conseil-num { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #0F6E56; margin-bottom: 0.3rem; }
+  .conseil-text { font-size: 14px; color: #333; line-height: 1.6; }
+
+  .unlock-block {
+    background: #085041;
+    border-radius: 16px;
+    padding: 1.5rem 1.25rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .unlock-block.active { display: block; }
+  .unlock-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #5DCAA5; margin-bottom: 0.4rem; text-align: center; }
+  .unlock-title { font-size: 16px; font-weight: 700; color: #E1F5EE; margin-bottom: 0.3rem; text-align: center; line-height: 1.3; }
+  .unlock-sub { font-size: 13px; color: #9FE1CB; margin-bottom: 1rem; text-align: center; line-height: 1.4; }
+  .unlock-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .unlock-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1.5px solid #0F6E56;
+    background: #064034;
+    color: #E1F5EE;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .unlock-input::placeholder { color: #5DCAA5; }
+  .unlock-input:focus { border-color: #1D9E75; }
+  .unlock-btn {
+    width: 100%;
+    padding: 0.8rem;
+    background: #1D9E75;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .unlock-btn:hover { background: #0F6E56; }
+  .unlock-error { font-size: 12px; color: #F09595; text-align: center; margin-top: 4px; display: none; }
+  .unlock-error.active { display: block; }
+
+  .cta-block { background: #085041; border-radius: 16px; padding: 1.5rem 1.25rem; margin-top: 1rem; display: none; }
+  .cta-block.active { display: block; }
+  .cta-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #5DCAA5; margin-bottom: 0.5rem; text-align: center; }
+  .cta-title { font-size: 17px; font-weight: 700; color: #E1F5EE; margin-bottom: 0.4rem; text-align: center; line-height: 1.3; }
+  .cta-sub { font-size: 13px; color: #9FE1CB; margin-bottom: 1.25rem; text-align: center; line-height: 1.5; }
+  .cta-btn { display: block; width: 100%; background: #1D9E75; color: #fff; border: none; border-radius: 10px; padding: 0.85rem 1.5rem; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none; text-align: center; transition: background 0.2s; }
+  .cta-btn:hover { background: #17845f; }
+</style>
+</head>
+<body>
+<div class="vp-wrap">
+  <div class="vp-header">
+    <div class="vp-logo">Versalia Performance</div>
+    <div class="vp-title">Diagnostic énergie & performance</div>
+    <div class="vp-sub">5 questions pour révéler votre potentiel inexploité</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+  <div id="questions">
+    <div class="step active" data-step="0">
+      <div class="q-label">Question 1 / 5</div>
+      <div class="q-text">Comment évaluez-vous votre niveau d'énergie moyen dans la journée ?</div>
+      <div class="options">
+        <button class="opt" data-val="1">Je suis souvent épuisé(e), j'ai du mal à tenir la journée</button>
+        <button class="opt" data-val="2">J'ai des coups de fatigue réguliers, notamment après le déjeuner</button>
+        <button class="opt" data-val="3">Mon énergie est correcte mais pas constante</button>
+        <button class="opt" data-val="4">Je me sens énergique et constant(e) toute la journée</button>
+      </div>
+    </div>
+    <div class="step" data-step="1">
+      <div class="q-label">Question 2 / 5</div>
+      <div class="q-text">Quelle est votre fréquence d'activité physique hebdomadaire ?</div>
+      <div class="options">
+        <button class="opt" data-val="1">Je ne fais pas de sport du tout</button>
+        <button class="opt" data-val="2">1 fois par semaine ou moins</button>
+        <button class="opt" data-val="3">2 à 3 fois par semaine</button>
+        <button class="opt" data-val="4">4 fois ou plus, avec structure et régularité</button>
+      </div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="q-label">Question 3 / 5</div>
+      <div class="q-text">Comment décririez-vous vos habitudes alimentaires au quotidien ?</div>
+      <div class="options">
+        <button class="opt" data-val="1">Je mange n'importe quoi, souvent sur le pouce</button>
+        <button class="opt" data-val="2">Je fais attention parfois mais pas de manière structurée</button>
+        <button class="opt" data-val="3">Je mange équilibré la plupart du temps</button>
+        <button class="opt" data-val="4">Je suis mes macros et ma nutrition est optimisée</button>
+      </div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="q-label">Question 4 / 5</div>
+      <div class="q-text">Comment qualifieriez-vous votre qualité de sommeil actuelle ?</div>
+      <div class="options">
+        <button class="opt" data-val="1">Mauvais sommeil, je me réveille fatigué(e) souvent</button>
+        <button class="opt" data-val="2">Sommeil irrégulier, variable selon les nuits</button>
+        <button class="opt" data-val="3">Sommeil correct, 6 à 7h en général</button>
+        <button class="opt" data-val="4">Excellent sommeil, 7 à 9h, régulier et réparateur</button>
+      </div>
+    </div>
+    <div class="step" data-step="4">
+      <div class="q-label">Question 5 / 5</div>
+      <div class="q-text">Quel est votre chiffre d'affaires mensuel actuel approximatif ?</div>
+      <div class="options">
+        <button class="opt" data-val="1" data-ca="2000">Moins de 2 000€ / mois</button>
+        <button class="opt" data-val="2" data-ca="4000">Entre 2 000€ et 5 000€ / mois</button>
+        <button class="opt" data-val="3" data-ca="8000">Entre 5 000€ et 10 000€ / mois</button>
+        <button class="opt" data-val="4" data-ca="15000">Plus de 10 000€ / mois</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-next" id="btnNext">Continuer →</button>
+  <div class="loading-block" id="loading">
+    <div><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+    <div class="loading-text">Analyse de vos résultats en cours…</div>
+  </div>
+  <div class="result" id="result">
+    <div class="scores-grid">
+      <div class="score-block">
+        <div class="score-label">Taux d'énergie</div>
+        <div class="score-val" id="res-energie">—</div>
+        <div class="score-unit">/ 100</div>
+      </div>
+      <div class="score-block" style="background:#E1F5EE;border:1.5px solid #5DCAA5;">
+        <div class="score-label" style="color:#0F6E56;">CA supplémentaire possible</div>
+        <div class="score-val" id="res-ca" style="color:#085041;">—</div>
+        <div class="score-unit" style="color:#0F6E56;">à débloquer chaque mois</div>
+        <div style="font-size:11px;color:#0F6E56;margin-top:0.5rem;line-height:1.4;">en atteignant 100/100 en énergie</div>
+      </div>
+    </div>
+    <div class="gauge-wrap"><div class="gauge-label"><span>Énergie</span><span id="g-energie-val">0%</span></div><div class="gauge-track"><div class="gauge-fill" id="g-energie" style="background:#1D9E75;"></div></div></div>
+    <div class="gauge-wrap"><div class="gauge-label"><span>Sport</span><span id="g-sport-val">0%</span></div><div class="gauge-track"><div class="gauge-fill" id="g-sport" style="background:#378ADD;"></div></div></div>
+    <div class="gauge-wrap"><div class="gauge-label"><span>Nutrition</span><span id="g-nutri-val">0%</span></div><div class="gauge-track"><div class="gauge-fill" id="g-nutri" style="background:#BA7517;"></div></div></div>
+    <div class="gauge-wrap"><div class="gauge-label"><span>Sommeil</span><span id="g-sommeil-val">0%</span></div><div class="gauge-track"><div class="gauge-fill" id="g-sommeil" style="background:#7F77DD;"></div></div></div>
+    <div class="divider"></div>
+    <div class="conseils-title">Vos 3 conseils personnalisés</div>
+    <div id="conseils-list"></div>
+
+    <div class="unlock-block active" id="unlock-block">
+      <div class="unlock-eyebrow">Accès verrouillé</div>
+      <div class="unlock-title">Débloquez vos 3 conseils personnalisés</div>
+      <div class="unlock-sub">Entrez vos coordonnées pour accéder à votre plan d'action complet.</div>
+      <div class="unlock-fields">
+        <input class="unlock-input" type="text" id="input-prenom" placeholder="Votre prénom" autocomplete="given-name" />
+        <input class="unlock-input" type="tel" id="input-tel" placeholder="Votre numéro de téléphone" autocomplete="tel" />
+      </div>
+      <button class="unlock-btn" id="unlock-btn">Débloquer mes conseils →</button>
+      <div class="unlock-error" id="unlock-error">Merci de renseigner votre prénom et votre numéro.</div>
+    </div>
+
+    <div class="cta-block" id="cta-block">
+      <div class="cta-eyebrow">Passez à l'action</div>
+      <div class="cta-title">Débloquez votre plan complet en appel découverte</div>
+      <div class="cta-sub">30 minutes pour analyser votre profil, lever vos freins et repartir avec un plan concret pour atteindre votre plein potentiel de CA.</div>
+      <a class="cta-btn" href="https://calendly.com/arribe-arthur/diagnostique-built" target="_blank">Réserver mon appel gratuit →</a>
+    </div>
+  </div>
+</div>
+<script>
+  const SD = 'background:#fff;border:1.5px solid #e0e0da;border-radius:10px;padding:0.8rem 1rem;font-size:14px;color:#333;cursor:pointer;text-align:left;width:100%;font-family:inherit;';
+  const SS = 'background:#1D9E75;border:2px solid #0F6E56;border-radius:10px;padding:0.8rem 1rem;font-size:14px;color:#fff;cursor:pointer;text-align:left;width:100%;font-weight:600;font-family:inherit;';
+  const answers = {};
+  let currentStep = 0;
+  const steps = document.querySelectorAll('.step');
+  const btnNext = document.getElementById('btnNext');
+  document.querySelectorAll('.opt').forEach(b => b.setAttribute('style', SD));
+
+  function updateProgress(s) { document.getElementById('prog').style.width = Math.round((s/5)*100)+'%'; }
+
+  steps.forEach((step, si) => {
+    step.querySelectorAll('.opt').forEach(btn => {
+      btn.addEventListener('click', function() {
+        step.querySelectorAll('.opt').forEach(b => b.setAttribute('style', SD));
+        this.setAttribute('style', SS);
+        answers[si] = { val: parseInt(this.dataset.val), ca: parseInt(this.dataset.ca)||0 };
+        btnNext.classList.add('ready');
+      });
+    });
+  });
+
+  btnNext.addEventListener('click', function() {
+    if (!answers[currentStep]) return;
+    currentStep++;
+    updateProgress(currentStep);
+    if (currentStep < 5) {
+      steps.forEach(s => s.classList.remove('active'));
+      steps[currentStep].classList.add('active');
+      steps[currentStep].querySelectorAll('.opt').forEach(b => b.setAttribute('style', SD));
+      btnNext.classList.remove('ready');
+    } else {
+      document.getElementById('questions').style.display='none';
+      btnNext.style.display='none';
+      document.getElementById('loading').classList.add('active');
+      setTimeout(showResult, 2200);
+    }
+  });
+
+  function showResult() {
+    document.getElementById('loading').classList.remove('active');
+    const e=Math.round((answers[0].val/4)*100), s=Math.round((answers[1].val/4)*100), n=Math.round((answers[2].val/4)*100), sl=Math.round((answers[3].val/4)*100);
+    const avg=Math.round((e+s+n+sl)/4), base=answers[4].ca||2000;
+    const gain=(s+n+sl)/3;
+    const caGain=gain<25?0.70:gain<50?0.50:gain<75?0.30:0.15;
+    const caGainMontant=Math.round(base*caGain/100)*100;
+    document.getElementById('res-energie').textContent=avg;
+    document.getElementById('res-ca').textContent='+'+caGainMontant.toLocaleString('fr-FR')+'€';
+    setTimeout(()=>{ setG('g-energie','g-energie-val',e); setG('g-sport','g-sport-val',s); setG('g-nutri','g-nutri-val',n); setG('g-sommeil','g-sommeil-val',sl); },100);
+    const c=buildC(s,n,sl);
+    const cl=document.getElementById('conseils-list');
+    cl.innerHTML='';
+    c.forEach((t,i)=>{
+      cl.innerHTML+=`<div class="conseil blurred" id="conseil-${i}">
+        <div class="conseil-num">Conseil ${i+1}</div>
+        <div class="conseil-text">${t}</div>
+      </div>`;
+    });
+    document.getElementById('result').classList.add('active');
+  }
+
+  document.getElementById('unlock-btn').addEventListener('click', function() {
+    const prenom = document.getElementById('input-prenom').value.trim();
+    const tel = document.getElementById('input-tel').value.trim();
+    const err = document.getElementById('unlock-error');
+    if (!prenom || !tel || tel.length < 8) {
+      err.classList.add('active');
+      return;
+    }
+    err.classList.remove('active');
+
+    const e=Math.round((answers[0].val/4)*100), s=Math.round((answers[1].val/4)*100), n=Math.round((answers[2].val/4)*100), sl=Math.round((answers[3].val/4)*100);
+    const avg=Math.round((e+s+n+sl)/4), base=answers[4].ca||2000;
+    const gain=(s+n+sl)/3;
+    const caGain=gain<25?0.70:gain<50?0.50:gain<75?0.30:0.15;
+    const caGainMontant=Math.round(base*caGain/100)*100;
+
+    fetch('https://hooks.airtable.com/workflows/v1/genericWebhook/appgaUMqu185UZEas/wfllPvKV06tyHkwEE/wtrS3CduoOWUq3pqY', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: new Date().toLocaleString('fr-FR'),
+        prenom: prenom,
+        telephone: tel,
+        score_energie: avg,
+        ca_supplementaire: '+' + caGainMontant.toLocaleString('fr-FR') + '€',
+        score_sport: s + '%',
+        score_nutrition: n + '%',
+        score_sommeil: sl + '%',
+        ca_actuel: base.toLocaleString('fr-FR') + '€'
+      })
+    }).catch(() => {});
+
+    document.querySelectorAll('.conseil.blurred').forEach(c => c.classList.remove('blurred'));
+    document.getElementById('unlock-block').style.display='none';
+    document.getElementById('cta-block').classList.add('active');
+  });
+
+  function setG(id,vid,v){ document.getElementById(id).style.width=v+'%'; document.getElementById(vid).textContent=v+'%'; }
+
+  function buildC(s,n,sl){
+    const o=[];
+    o.push(s<=50?"Introduisez 2 séances de 30 min de sport par semaine minimum. Une étude finlandaise sur des jumeaux a démontré que les individus actifs génèrent des revenus significativement plus élevés — l'exercice forge la discipline et la clarté mentale qui se transfèrent directement en performance business.":s<=75?"Vous bougez, c'est bien. Passez à 3-4 séances structurées par semaine avec un objectif précis. La régularité et la progressivité, pas l'intensité, sont ce qui génère les bénéfices cognitifs documentés par la recherche en neurosciences.":"Votre pratique sportive est solide. Optimisez la récupération : intégrez une session de mobilité entre chaque entraînement intense. La qualité de vos séances impacte directement votre clarté cognitive le lendemain.");
+    o.push(n<=50?"Commencez par une seule règle non-négociable : 1,6g de protéines par kg de poids de corps chaque jour. L'OIT a démontré qu'une alimentation équilibrée augmente la productivité de 20 à 25%. Ce n'est pas un luxe — c'est du carburant pour vos décisions et votre chiffre d'affaires.":n<=75?"Votre alimentation est correcte mais manque de structure. Planifiez vos 3 repas à l'avance. Évitez les glucides simples au déjeuner — un pic d'insuline à midi peut amputer 2 à 3h de productivité effective l'après-midi.":"Votre nutrition est votre force. Allez plus loin : synchronisez votre apport en glucides avec vos séances (chrononutrition). Cela maximise la récupération musculaire ET la production de sérotonine qui conditionne votre stabilité émotionnelle.");
+    o.push(sl<=50?"Le sommeil est votre levier n°1. L'OMS a analysé 50 000 dirigeants : ceux qui dorment 7 à 9h régulièrement prennent significativement moins de décisions financières risquées. Couchez-vous 30 min plus tôt cette semaine. Coupez les écrans 1h avant.":sl<=75?"Stabilisez vos horaires de coucher ET de réveil, y compris le week-end — c'est la régularité qui régule votre rythme circadien et optimise la clarté cognitive du lendemain.":"Excellent sommeil. Capitalisez dessus en planifiant vos tâches à haute valeur ajoutée dans les 2 premières heures après le réveil, quand votre cortex préfrontal est au pic de ses capacités.");
+    return o;
+  }
+
+  updateProgress(0);
+</script>
+</body>
+</html>
