@@ -294,8 +294,8 @@
 
     fetch('https://hooks.airtable.com/workflows/v1/genericWebhook/appgaUMqu185UZEas/wfllPvKV06tyHkwEE/wtrS3CduoOWUq3pqY', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
         date: new Date().toLocaleString('fr-FR'),
         prenom: prenom,
         telephone: tel,
@@ -305,7 +305,7 @@
         score_nutrition: n + '%',
         score_sommeil: sl + '%',
         ca_actuel: base.toLocaleString('fr-FR') + '€'
-      })
+      }).toString()
     }).catch(() => {});
 
     document.querySelectorAll('.conseil.blurred').forEach(c => c.classList.remove('blurred'));
